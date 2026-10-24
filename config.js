@@ -1,3 +1,4 @@
-
-window.SUPABASE_URL = "https://hpzifhbcpudsfchdvrxp.supabase.co";
-window.SUPABASE_ANON_KEY = "sb_publishable_wJPe7OtxCgTjbzvIIisoMw_nxOpUbe4";
+window.PS_CONFIG = {
+url: "https://bubwhfqhqnxdesinbrrk.supabase.co",
+anonKey: "sb_publishable_ZPUvQim6gtObjRgg0fquWQ_WtV3fw4-"
+};
