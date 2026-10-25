@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRIME SCRIMS Live Ranking</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+#root{position:relative;transform-origin:top left}
+.err{font:14px Arial,sans-serif;color:#fff;background:#a00;padding:10px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function(g){
+var COLS=['rank','team','mp','wwcd','pp','kp','tp'];
+var LB={rank:'#',team:'TEAM',mp:'MP',wwcd:'WWCD',pp:'PP',kp:'KP',tp:'TP'};
+
+var CSS='.pso{position:relative;overflow:hidden;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95);line-height:1}'
++'.pso .r{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;box-sizing:border-box;padding:0 .4em 0 .3em;background:rgba(8,8,12,.66);border-left:.18em solid var(--ac);will-change:transform;transition:transform .8s cubic-bezier(.22,.8,.22,1),opacity .5s}'
++'.pso.n .r{transition:none}'
++'.pso .r.eliminated{background:linear-gradient(90deg,rgba(115,10,18,.96),rgba(42,7,12,.92));border-left-color:#ff2735;box-shadow:inset 0 0 0 1px rgba(255,39,53,.42)}'
++'.pso .r.eliminated .c.team{color:#ff747b;text-decoration:line-through;text-decoration-thickness:1px}'
++'.pso .r.h{background:var(--ac);border-left-color:transparent;font-weight:700;font-size:.55em;letter-spacing:.02em;text-shadow:none;color:var(--hc)}'
++'.pso .c{flex:none;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}'
++'.pso .c.rank{width:calc(var(--f)*1.6)}.pso .c.mp,.pso .c.wwcd,.pso .c.pp,.pso .c.kp{width:calc(var(--f)*2)}.pso .c.tp{width:calc(var(--f)*2.3);font-size:1.12em}.pso .r.h .c.tp{font-size:1em}'
++'.pso .c.team{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;padding:0 .3em}'
++'.pso .c.rank.m1,.pso .c.rank.m2,.pso .c.rank.m3{color:#1a1200;text-shadow:none;border-radius:.12em;margin-right:0}'
++'.pso .c.rank.m1{background:#f5c542}.pso .c.rank.m2{background:#cfd6df}.pso .c.rank.m3{background:#cd7f32}'
++'.pso .c.tp{color:#fff}';
+
+function compute(d,view){
+var kp=+d.kp||0,pts=d.pts||[],M=d.matches||[];
+var pl=function(p){var n=parseInt(p,10);return n>0?(+pts[n-1]||0):0;};
+var out=(d.teams||[]).map(function(n,i){
+var m=0,w=0,pp=0,k=0;
+if(view==null||view==='o'){
+M.forEach(function(x){
+var r=x&&x[i];
+if(!r||(!r.p&&!r.k))return;
+m++;
+if(parseInt(r.p,10)===1)w++;
+k+=parseFloat(r.k)||0;
+pp+=pl(r.p);
+});
+}else{
+var r=(M[+view]||{})[i]||{};
+m=1;
+w=parseInt(r.p,10)===1?1:0;
+k=parseFloat(r.k)||0;
+pp=pl(r.p);
+}
+return{id:i,n:String(n),mp:m,wwcd:w,pp:pp,kills:k,kp:k*kp,tp:pp+k*kp};
+});
+out.sort(function(a,b){
+return b.tp-a.tp||b.wwcd-a.wwcd||b.kills-a.kills||a.id-b.id;
+});
+return out;
+}
+
+function mount(el,o){
+if(!document.getElementById('pso-css')){
+var s=document.createElement('style');
+s.id='pso-css';
+s.textContent=CSS;
+document.head.appendChild(s);
+}
+
+var S={
+o:Object.assign({w:380,h:1080,fs:20,rs:6,ac:'#e10600',cols:COLS.slice(),n:25},o||{}),
+rows:{},prev:{},data:null,view:'o',first:true,moved:[]
+};
+
+el.classList.add('pso','n');
+
+function hc(a){
+var h=String(a).replace('#','');
+return(.299*parseInt(h.substr(0,2),16)+.587*parseInt(h.substr(2,2),16)+.114*parseInt(h.substr(4,2),16))>150?'#111':'#fff';
+}
+
+function vis(){
+return COLS.filter(function(c){return S.o.cols.indexOf(c)>-1;});
+}
+
+function cells(row,h){
+var c={};
+vis().forEach(function(k){
+var e=document.createElement('span');
+e.className='c '+k;
+if(h)e.textContent=LB[k];
+row.appendChild(e);
+c[k]=e;
+});
+return c;
+}
+
+function rebuild(){
+var q=S.o;
+el.textContent='';
+S.rows={};
+S.prev={};
+S.first=true;
+el.classList.add('n');
+el.style.width=q.w+'px';
+el.style.height=q.h+'px';
+el.style.fontSize=q.fs+'px';
+el.style.setProperty('--ac',q.ac);
+el.style.setProperty('--f',q.fs+'px');
+el.style.setProperty('--hc',hc(q.ac));
+var h=document.createElement('div');
+h.className='r h';
+h.style.height=q.fs*1.4+'px';
+cells(h,true);
+el.appendChild(h);
+}
+
+function flash(e,up){
+try{
+e.animate([
+{boxShadow:'inset 0 0 0 999px '+(up?'rgba(70,255,140,.5)':'rgba(255,90,90,.45)')},
+{boxShadow:'inset 0 0 0 999px rgba(0,0,0,0)'}
+],{duration:1500,easing:'ease-out'});
+}catch(x){}
+}
+
+function put(r,k,v){
+if(r.cells[k]&&r.v[k]!==v){
+r.v[k]=v;
+r.cells[k].textContent=v;
+}
+}
+
+function update(data,view){
+S.data=data;
+S.view=view==null?'o':String(view);
+S.moved=[];
+
+var q=S.o,hh=q.fs*1.4,list=compute(data,S.view);
+var N0=Math.max(1,Math.min(q.n,25,list.length));
+var rh=Math.max(q.fs*1.25,Math.min(q.fs*1.9,(q.h-hh-(N0-1)*q.rs)/N0));
+var fit=Math.max(0,Math.floor((q.h-hh+q.rs)/(rh+q.rs)));
+var N=Math.min(N0,fit),seen={};
+
+var activeMatch=Number(data.currentMatch);
+if(!isFinite(activeMatch)||activeMatch<0){
+activeMatch=(data.matches||[]).length-1;
+}
+var matchRows=(data.matches||[])[activeMatch]||{};
+
+list.forEach(function(t,rank){
+seen[t.id]=1;
+var r=S.rows[t.id];
+
+if(!r){
+var e=document.createElement('div');
+e.className='r';
+r={el:e,cells:cells(e,false),v:{},tf:'',op:'',h:''};
+S.rows[t.id]=r;
+el.appendChild(e);
+}
+
+if(r.h!==rh){
+r.h=rh;
+r.el.style.height=rh+'px';
+}
+
+put(r,'rank',rank+1);
+put(r,'team',t.n);
+put(r,'mp',t.mp);
+put(r,'wwcd',t.wwcd);
+put(r,'pp',t.pp);
+put(r,'kp',t.kp);
+put(r,'tp',t.tp);
+
+if(r.cells.rank){
+r.cells.rank.className='c rank'+(rank<3?' m'+(rank+1):'');
+}
+
+/* Eliminated team styling */
+var matchRow=matchRows[t.id];
+var isOut=!!(matchRow&&matchRow.eliminated);
+r.el.classList.toggle('eliminated',isOut);
+
+var tf='translateY('+(hh+rank*(rh+q.rs))+'px)';
+if(r.tf!==tf){
+r.tf=tf;
+r.el.style.transform=tf;
+}
+
+var op=rank<N?'1':'0';
+if(r.op!==op){
+r.op=op;
+r.el.style.opacity=op;
+}
+
+if(S.prev[t.id]!=null&&S.prev[t.id]!==rank){
+S.moved.push(t.id);
+flash(r.el,rank<S.prev[t.id]);
+}
+S.prev[t.id]=rank;
+});
+
+Object.keys(S.rows).forEach(function(k){
+if(!seen[k]){
+S.rows[k].el.remove();
+delete S.rows[k];
+delete S.prev[k];
+}
+});
+
+if(S.first){
+S.first=false;
+requestAnimationFrame(function(){
+requestAnimationFrame(function(){
+el.classList.remove('n');
+});
+});
+}
+}
+
+function clear(){
+rebuild();
+S.data=null;
+}
+
+function setOpts(o){
+Object.assign(S.o,o);
+rebuild();
+if(S.data)update(S.data,S.view);
+}
+
+rebuild();
+
+return{
+update:update,
+clear:clear,
+setOpts:setOpts,
+get moved(){return S.moved.slice();},
+get opts(){return S.o;}
+};
+}
+
+g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
+})(window);
+</script>
+
+<script>
+(function(){
+const q=new URLSearchParams(location.search);
+const token=q.get('t'),url=q.get('u'),key=q.get('k');
+const root=document.getElementById('root');
+
+if(!token||!url||!key){
+root.innerHTML='<div class="err">Missing live ranking settings. Copy the full overlay URL from Point Table Maker.</div>';
+return;
+}
+
+const client=window.supabase.createClient(url,key,{
+auth:{persistSession:false,autoRefreshToken:false}
+});
+
+let mounted=null,last='';
+
+async function refresh(){
+try{
+const {data,error}=await client.rpc('get_ptm_live_overlay',{p_token:token});
+if(error)throw error;
+
+if(!data||!data.data){
+throw new Error('No published ranking found for this URL. Publish again from the admin panel.');
+}
+
+const signature=JSON.stringify(data);
+if(signature===last)return;
+last=signature;
+
+const o=data.opts||{};
+
+if(!mounted){
+mounted=window.PSOverlay.mount(root,Object.assign({
+w:380,h:1080,fs:20,rs:6,ac:'#e10600',
+cols:window.PSOverlay.COLS.slice()
+},o));
+}else{
+mounted.setOpts(o);
+}
+
+mounted.update(data.data,data.view==null?'o':data.view);
+
+document.documentElement.style.width=(o.w||380)+'px';
+document.documentElement.style.height=(o.h||1080)+'px';
+
+}catch(e){
+if(!mounted){
+root.innerHTML='<div class="err">Live ranking unavailable: '+String(e.message||e).replace(/[<>]/g,'')+'</div>';
+}
+console.error(e);
+}
+}
+
+refresh();
+setInterval(refresh,2500);
+})();
+</script>
+</body>
+</html>
