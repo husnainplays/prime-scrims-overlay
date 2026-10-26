@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PRIME SCRIMS Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:transparent!important}</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script>
+(function(g){
+var COLS=['rank','flag','logo','team','el','mp','wwcd','pp','kp','tp'],LB={rank:'#',flag:'',logo:'',team:'TEAM',el:'ELIMS',mp:'MP',wwcd:'WWCD',pp:'PP',kp:'KP',tp:'PTS'};
+var CSS='.pso{position:relative;overflow:hidden;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95);line-height:1}'
++'.pso .r{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;box-sizing:border-box;padding:0 .4em 0 .3em;background:rgba(8,8,12,.66);border-left:.18em solid var(--ac);will-change:transform;transition:transform .8s cubic-bezier(.22,.8,.22,1),opacity .5s}'
++'.pso.n .r{transition:none}'
++'.pso .r.eliminated{background:linear-gradient(90deg,rgba(115,10,18,.94),rgba(42,7,12,.88));border-left-color:#ff2735;box-shadow:inset 0 0 0 1px rgba(255,39,53,.42)}.pso .r.eliminated .c.team{color:#ff747b;text-decoration:line-through;text-decoration-thickness:1px}'
++'.pso .r.h{background:var(--ac);border-left-color:transparent;font-weight:700;font-size:.55em;letter-spacing:.02em;text-shadow:none;color:var(--hc)}'
++'.pso .c{flex:none;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}'
++'.pso .c.rank{width:calc(var(--f)*1.6)}.pso .c.mp,.pso .c.wwcd,.pso .c.pp,.pso .c.kp{width:calc(var(--f)*2)}.pso .c.tp{width:calc(var(--f)*2.3);font-size:1.12em}.pso .r.h .c.tp{font-size:1em}'
++'.pso .c.team{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;padding:0 .3em}'
++'.pso .c.rank.m1,.pso .c.rank.m2,.pso .c.rank.m3{color:#1a1200;text-shadow:none;border-radius:.12em;margin-right:0}'
++'.pso .c.rank.m1{background:#f5c542}.pso .c.rank.m2{background:#cfd6df}.pso .c.rank.m3{background:#cd7f32}'
++'.pso .c.tp{color:#fff}'
++'.pso .c.el{width:calc(var(--f)*1.8)}'
++'.pso .c.flag,.pso .c.logo{display:flex;align-items:center;justify-content:center;padding:0 .12em}'
++'.pso .c.flag{width:calc(var(--f)*1.9)}.pso .c.logo{width:calc(var(--f)*1.6)}'
++'.pso .c.flag img{width:1.55em;height:1.05em;object-fit:cover;border-radius:.1em;box-shadow:0 0 0 1px rgba(0,0,0,.35)}'
++'.pso .c.logo img{width:1.35em;height:1.35em;object-fit:contain}'
++'.pso .r.h .c.flag,.pso .r.h .c.logo{display:none}'
++'.pso.d2 .r{background:rgba(244,248,246,.95);color:#10261b;text-shadow:none;border-left:0;border-bottom:1px solid rgba(0,0,0,.08)}'
++'.pso.d2 .r.h{background:var(--ac);color:var(--hc)}'
++'.pso.d2 .c.tp{color:#10261b}.pso.d2 .r.h .c.tp{color:var(--hc)}'
++'.pso.d2 .r.eliminated{background:rgba(255,224,226,.96);box-shadow:none}.pso.d2 .r.eliminated .c.team{color:#c0232d}'
++'.pso.d3 .r{background:linear-gradient(90deg,rgba(14,26,78,.96),rgba(8,14,46,.92));border-left:.22em solid var(--ac)}'
++'.pso.d4 .r{background:linear-gradient(90deg,rgba(10,10,12,.97),rgba(30,8,10,.94));border-left:.3em solid var(--ac);border-radius:0 .5em .5em 0}'
++'.pso.d5 .r{background:rgba(26,8,56,.9);border-left:0;border-radius:.45em;box-shadow:0 0 .7em var(--ac),inset 0 0 0 1px var(--ac)}'
++'.pso.d5 .r.h{box-shadow:none}'
++'.pso.d3 .r.eliminated,.pso.d4 .r.eliminated,.pso.d5 .r.eliminated{background:linear-gradient(90deg,rgba(115,10,18,.94),rgba(42,7,12,.88));border-left-color:#ff2735}'
++'.pso.d5 .r.eliminated{box-shadow:0 0 .7em #ff2735,inset 0 0 0 1px #ff2735}'
++'.pso.d3 .r.h,.pso.d4 .r.h{border-radius:0}';
+function compute(d,view){
+  var kp=+d.kp||0,pts=d.pts||[],M=d.matches||[],pl=function(p){var n=parseInt(p,10);return n>0?(+pts[n-1]||0):0;};
+  var out=(d.teams||[]).map(function(n,i){var m=0,w=0,pp=0,k=0;
+    if(view==null||view==='o'){M.forEach(function(x){var r=x&&x[i];if(!r||(!r.p&&!r.k))return;m++;if(parseInt(r.p,10)===1)w++;k+=parseFloat(r.k)||0;pp+=pl(r.p);});}
+    else{var r=(M[+view]||{})[i]||{};m=1;w=parseInt(r.p,10)===1?1:0;k=parseFloat(r.k)||0;pp=pl(r.p);}
+    return{id:i,n:String(n),mp:m,wwcd:w,pp:pp,kills:k,kp:k*kp,tp:pp+k*kp};});
+  out.sort(function(a,b){return b.tp-a.tp||b.wwcd-a.wwcd||b.kills-a.kills||a.id-b.id;});
+  return out;}
+function mount(el,o){
+  if(!document.getElementById('pso-css')){var s=document.createElement('style');s.id='pso-css';s.textContent=CSS;document.head.appendChild(s);}
+  var S={o:Object.assign({w:380,h:1080,fs:20,rs:6,ac:'#e10600',cols:COLS.slice(),n:25},o||{}),rows:{},prev:{},data:null,view:'o',first:true,moved:[]};
+  el.classList.add('pso','n');
+  function hc(a){var h=String(a).replace('#','');return(.299*parseInt(h.substr(0,2),16)+.587*parseInt(h.substr(2,2),16)+.114*parseInt(h.substr(4,2),16))>150?'#111':'#fff';}
+  function vis(){return COLS.filter(function(c){return S.o.cols.indexOf(c)>-1;});}
+  function cells(row,h){var c={};vis().forEach(function(k){var e=document.createElement('span');e.className='c '+k;if(h)e.textContent=LB[k];row.appendChild(e);c[k]=e;});return c;}
+  function rebuild(){var q=S.o;el.textContent='';S.rows={};S.prev={};S.first=true;el.className=(el.className.replace(/\s*\bd\d\b/g,'')+' d'+(q.dz||1)).trim();el.classList.add('n');
+    el.style.width=q.w+'px';el.style.height=q.h+'px';el.style.fontSize=q.fs+'px';el.style.setProperty('--ac',q.ac);el.style.setProperty('--f',q.fs+'px');el.style.setProperty('--hc',hc(q.ac));
+    var h=document.createElement('div');h.className='r h';h.style.height=q.fs*1.4+'px';cells(h,true);el.appendChild(h);}
+  function flash(e,up){try{e.animate([{boxShadow:'inset 0 0 0 999px '+(up?'rgba(70,255,140,.5)':'rgba(255,90,90,.45)')},{boxShadow:'inset 0 0 0 999px rgba(0,0,0,0)'}],{duration:1500,easing:'ease-out'});}catch(x){}}
+  function img(r,k,src){var c=r.cells[k];if(!c||r.v['i'+k]===src)return;r.v['i'+k]=src;c.textContent='';if(src){var m=new Image();m.alt='';m.src=src;c.appendChild(m);c.style.display='';}else c.style.display='none';}
+  function put(r,k,v){if(r.cells[k]&&r.v[k]!==v){r.v[k]=v;r.cells[k].textContent=v;}}
+  function update(data,view){
+    S.data=data;S.view=view==null?'o':String(view);S.moved=[];
+    var q=S.o,hh=q.fs*1.4,list=compute(data,S.view),N0=Math.max(1,Math.min(q.n,25,list.length)),rh=Math.max(q.fs*1.25,Math.min(q.fs*1.9,(q.h-hh-(N0-1)*q.rs)/N0)),fit=Math.max(0,Math.floor((q.h-hh+q.rs)/(rh+q.rs))),N=Math.min(N0,fit),seen={};
+    list.forEach(function(t,rank){seen[t.id]=1;var r=S.rows[t.id];
+      if(!r){var e=document.createElement('div');e.className='r';r={el:e,cells:cells(e,false),v:{},tf:'',op:'',h:''};S.rows[t.id]=r;el.appendChild(e);}
+      if(r.h!==rh){r.h=rh;r.el.style.height=rh+'px';}
+      put(r,'rank',rank+1);put(r,'team',t.n);put(r,'mp',t.mp);put(r,'wwcd',t.wwcd);put(r,'pp',t.pp);put(r,'kp',t.kp);put(r,'tp',t.tp);put(r,'el',t.kills);var fc=String((data.flags||[])[t.id]||''),lg=String((data.logos||[])[t.id]||'');img(r,'flag',/^[a-z]{2}(-[a-z]{2,3})?$/.test(fc)?'https://flagcdn.com/w80/'+fc+'.png':'');img(r,'logo',lg.indexOf('data:image/')===0?lg:'');
+      if(r.cells.rank)r.cells.rank.className='c rank'+(rank<3?' m'+(rank+1):'');
+      var activeMatch=Number(data.currentMatch);if(!isFinite(activeMatch)||activeMatch<0)activeMatch=(data.matches||[]).length-1;var matchRows=(data.matches||[])[activeMatch]||{};var isOut=!!(matchRows[t.id]&&matchRows[t.id].eliminated);if(isOut)r.el.classList.add('eliminated');else r.el.classList.remove('eliminated');
+      var tf='translateY('+(hh+rank*(rh+q.rs))+'px)';
+      if(r.tf!==tf){r.tf=tf;r.el.style.transform=tf;}
+      var op=rank<N?'1':'0';if(r.op!==op){r.op=op;r.el.style.opacity=op;}
+      if(S.prev[t.id]!=null&&S.prev[t.id]!==rank){S.moved.push(t.id);flash(r.el,rank<S.prev[t.id]);}
+      S.prev[t.id]=rank;});
+    Object.keys(S.rows).forEach(function(k){if(!seen[k]){S.rows[k].el.remove();delete S.rows[k];delete S.prev[k];}});
+    if(S.first){S.first=false;requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.remove('n');});});}}
+  function clear(){rebuild();S.data=null;}
+  function setOpts(o){Object.assign(S.o,o);rebuild();if(S.data)update(S.data,S.view);}
+  rebuild();
+  return{update:update,clear:clear,setOpts:setOpts,get moved(){return S.moved.slice();},get opts(){return S.o;}};}
+g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
+})(window);
+</script>
+<script>
+window.__ptmUnwrap=function(d){if(Array.isArray(d))d=d[0];if(d&&d.payload&&!d.data)d=d.payload;return d;};
+</script>
+<script>
+/* Same-file live overlay mode: the generated Browser Source URL opens this HTML itself. */
+(function(){
+ var p=new URLSearchParams(location.search);if(p.get('mode')!=='overlay')return;
+ var token=p.get('t'),url=p.get('u'),key=p.get('k');
+ document.title='PRIME SCRIMS Live Overlay';
+ document.documentElement.style.cssText='margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important';
+ document.body.innerHTML='<div id="board" style="position:absolute;left:0;top:0"></div>';
+ document.body.style.cssText='margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important';
+ if(!token||!url||!key){document.body.innerHTML='<div style="color:white;background:#111;padding:12px;font:16px Arial">Overlay URL is missing its token or Supabase settings. Copy the full URL from Point Table Maker.</div>';return;}
+ var board=document.getElementById('board'),renderer=null,lastOpts='';
+ async function poll(){if(!window.supabase||!window.PSOverlay)return;try{
+   if(!window.__ptmOverlayClient)window.__ptmOverlayClient=window.supabase.createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+   var res=await window.__ptmOverlayClient.rpc('get_ptm_live_overlay',{p_token:token});
+   var payload=window.__ptmUnwrap(res.data);if(res.error||!payload||!payload.data)return;
+   var opts=payload.opts||{w:380,h:1080,fs:20,rs:6,ac:'#e10600',cols:['rank','team','mp','wwcd','pp','kp','tp']};
+   var sig=JSON.stringify(opts);if(!renderer){renderer=window.PSOverlay.mount(board,opts);lastOpts=sig;}else if(lastOpts!==sig){renderer.setOpts(opts);lastOpts=sig;}
+   renderer.update(payload.data,payload.view==null?'o':payload.view);
+ }catch(e){console.warn('Live overlay sync error',e);}}
+ poll();setInterval(poll,1000);
+})();
+</script>
+<script>
+/* Elimination overlay: renderer (PSElim) used by the Live tab preview and by the ?mode=elim Browser Source page. */
+(function(){
+ var CSS='.pel{position:relative;overflow:hidden;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;color:#fff;pointer-events:none;line-height:1;text-shadow:0 .1em .3em rgba(0,0,0,.9)}'
+ +'.pel-bx{position:absolute;left:50%;bottom:11em;width:72em;margin-left:-36em;opacity:0;visibility:hidden}'
+ +'.pel-ln{height:.6em;background:linear-gradient(90deg,transparent,#ff2735 12%,#ff2735 88%,transparent);transform:scaleX(0);box-shadow:0 0 1.6em rgba(255,39,53,.9)}'
+ +'.pel-pn{display:flex;align-items:center;height:15em;margin:.8em 0;box-sizing:border-box;clip-path:inset(0 100% 0 0);background:linear-gradient(90deg,rgba(130,8,18,.97),rgba(16,6,10,.95) 60%,rgba(16,6,10,.9));border-left:.9em solid #ff2735}'
+ +'.pel-sk{flex:none;width:15em;height:100%;display:flex;align-items:center;justify-content:center;background:#ff2735;color:#fff}'
+ +'.pel-sk svg{width:9em;height:9em;transform:scale(0)}'
+ +'.pel-tx{flex:1;min-width:0;padding:0 3em}'
+ +'.pel-tg{font-size:3.4em;font-weight:700;letter-spacing:.35em;color:#ff5560}'
+ +'.pel-nm{font-size:7.5em;font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:.08em 0}'
+ +'.pel-mt{font-size:2.8em;font-weight:600;letter-spacing:.2em;color:#c9ccd3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+ +'.pel-on{visibility:visible;opacity:1}'
+ +'.pel-on .pel-ln{animation:pelLn .5s ease-out forwards}'
+ +'.pel-on .pel-pn{animation:pelPn .55s .15s cubic-bezier(.2,.8,.2,1) forwards}'
+ +'.pel-on .pel-sk svg{animation:pelPop .5s .5s cubic-bezier(.3,1.6,.5,1) forwards,pelShake .5s 1s 2}'
+ +'.pel-on .pel-tg{animation:pelFl .6s .7s 1}'
+ +'.pel-on.pel-out{opacity:0;transform:translateY(2em);transition:opacity .5s,transform .5s}'
+ +'.pel-id{position:absolute;left:50%;bottom:11em;width:62em;margin-left:-31em;height:8.5em;display:flex;align-items:stretch;opacity:0;visibility:hidden;clip-path:inset(0 100% 0 0);background:rgba(14,6,8,.92);border-left:.8em solid #ff2735;box-shadow:0 0 2em rgba(0,0,0,.5)}'
++'.pel-id .bt,.pel-id .bm{display:flex;align-items:center;font-size:3.8em;font-weight:700;letter-spacing:.1em;white-space:nowrap;padding:0 1.2em}'
++'.pel-id .bt{flex:none;background:#e10600}.pel-id .bm{flex:1;min-width:0;display:block;line-height:2.24;overflow:hidden;text-overflow:ellipsis;color:#ffd0d3}'
++'.pel-id.on{visibility:visible;opacity:1;animation:pelIdIn .6s cubic-bezier(.2,.8,.2,1) forwards}.pel-id.on.out{animation:pelIdOut .5s ease-in forwards}'
++'@keyframes pelIdIn{to{clip-path:inset(0 0 0 0)}}@keyframes pelIdOut{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 0 100%)}}'
++'.pel-w .pel-ln{background:linear-gradient(90deg,transparent,#ffc400 12%,#ffc400 88%,transparent);box-shadow:0 0 1.6em rgba(255,196,0,.9)}'
++'.pel-w .pel-pn{background:linear-gradient(90deg,rgba(125,82,0,.97),rgba(20,14,4,.95) 60%,rgba(20,14,4,.9));border-left-color:#ffc400}'
++'.pel-w .pel-sk{background:#ffc400;color:#2a1d00}.pel-w .pel-tg{color:#ffd75a;font-size:3.2em;letter-spacing:.2em;white-space:nowrap}'
++'.pel-w.pel-on .pel-pn{animation:pelPn .55s .15s cubic-bezier(.2,.8,.2,1) forwards,pelGlow 1.6s 1s infinite}'
++'.pel-w.pel-on .pel-sk svg{animation:pelPop .5s .5s cubic-bezier(.3,1.6,.5,1) forwards,pelBob 1.2s 1s infinite}'
++'@keyframes pelGlow{0%,100%{box-shadow:0 0 0 rgba(255,196,0,0)}50%{box-shadow:0 0 3em rgba(255,196,0,.75)}}@keyframes pelBob{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.08) translateY(-.3em)}}'
++'@keyframes pelLn{to{transform:scaleX(1)}}@keyframes pelPn{to{clip-path:inset(0 0 0 0)}}@keyframes pelPop{from{transform:scale(0)}to{transform:scale(1)}}'
+ +'@keyframes pelShake{0%,100%{transform:translate(0) scale(1)}25%{transform:translate(-.5em,.25em) scale(1)}50%{transform:translate(.5em,-.25em) scale(1)}75%{transform:translate(-.3em,-.2em) scale(1)}}'
+ +'@keyframes pelFl{0%,100%{opacity:1}15%,45%{opacity:.2}30%,60%{opacity:1}}';
+ var SKULL='<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 6a22 22 0 0 0-22 22c0 7 3 12 8 16v10h28V44c5-4 8-9 8-16A22 22 0 0 0 32 6z"/><circle cx="23" cy="28" r="6" fill="#7a0710"/><circle cx="41" cy="28" r="6" fill="#7a0710"/><path d="M32 35l-4 8h8z" fill="#7a0710"/><path d="M26 47v7M32 47v7M38 47v7" stroke="#7a0710" stroke-width="2.4"/></svg>';
+ var TROPHY='<svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M18 8h28v14c0 9-6 15-14 16-8-1-14-7-14-16V8z"/><path d="M18 12H8v6c0 6 4 10 10 11M46 12h10v6c0 6-4 10-10 11" fill="none" stroke="currentColor" stroke-width="4"/><path d="M28 38h8v8h-8z"/><path d="M20 50h24v6H20z"/></svg>';
+ function mount(root){
+  if(!document.getElementById('pel-css')){var st=document.createElement('style');st.id='pel-css';st.textContent=CSS;document.head.appendChild(st);}
+  root.classList.add('pel');
+  root.innerHTML='<div class="pel-id"><span class="bt"></span><span class="bm"></span></div><div class="pel-bx"><div class="pel-ln"></div><div class="pel-pn"><div class="pel-sk">'+SKULL+'</div><div class="pel-tx"><div class="pel-tg">ELIMINATED</div><div class="pel-nm"></div><div class="pel-mt"></div></div></div><div class="pel-ln"></div></div>';
+  var bx=root.querySelector('.pel-bx'),nm=root.querySelector('.pel-nm'),mt=root.querySelector('.pel-mt'),tg=root.querySelector('.pel-tg'),sk=root.querySelector('.pel-sk'),q=[],busy=false,idEl=root.querySelector('.pel-id'),bt=idEl.querySelector('.bt'),bm=idEl.querySelector('.bm'),idleT=null,idleN=0,ictx={on:false,cm:null,map:'',title:''};
+  function idleHide(){clearTimeout(idleT);idEl.className='pel-id';}
+  function idleWake(){if(!ictx.on)return;clearTimeout(idleT);idleT=setTimeout(idleCycle,4000);}
+  function idleCycle(){if(busy){idleT=setTimeout(idleCycle,1500);return;}fit();var sl=[];
+   if(ictx.cm!=null)sl.push(['MATCH '+(ictx.cm+1),ictx.map||'LIVE']);
+   sl.push(['PRIME SCRIMS',(ictx.title&&ictx.title!=='PRIME SCRIMS')?ictx.title:'LIVE']);
+   var c=sl[idleN++%sl.length];bt.textContent=c[0];bm.textContent=c[1];idEl.className='pel-id on';
+   idleT=setTimeout(function(){idEl.className='pel-id on out';idleT=setTimeout(function(){idEl.className='pel-id';idleT=setTimeout(idleCycle,8000);},550);},7000);}
+  function fit(){root.style.fontSize=(root.clientWidth/100)+'px';}
+  function next(){
+   if(busy||!q.length)return;busy=true;idleHide();var it=q.shift(),ww=it.kind==='wwcd',w=ww?' pel-w':'',hold=ww?15000:(q.length?2600:3900);
+   fit();tg.textContent=ww?'WWCD \u2022 CHICKEN DINNER':'ELIMINATED';sk.innerHTML=ww?TROPHY:SKULL;nm.textContent=it.team;mt.textContent=it.meta;nm.style.fontSize='';var fs=7.5;while(nm.scrollWidth>nm.clientWidth+1&&fs>3.2){fs-=.3;nm.style.fontSize=fs+'em';}
+   bx.className='pel-bx'+w;void bx.offsetWidth;bx.className='pel-bx pel-on'+w;
+   setTimeout(function(){bx.className='pel-bx pel-on pel-out'+w;},hold);
+   setTimeout(function(){bx.className='pel-bx';busy=false;next();if(!busy)idleWake();},hold+600);
+  }
+  return {ctx:function(cm,map,title){ictx.cm=(cm==null||!isFinite(cm))?null:+cm;ictx.map=String(map||'').toUpperCase();ictx.title=String(title||'').toUpperCase();if(!ictx.on){ictx.on=true;if(!busy){clearTimeout(idleT);idleT=setTimeout(idleCycle,1500);}}},show:function(team,meta,kind){q.push({team:String(team==null?'':team),meta:meta||'',kind:kind||''});next();}};
+ }
+ window.PSElim={mount:mount};
+
+ var p=new URLSearchParams(location.search);if(p.get('mode')!=='elim')return;
+ var token=p.get('t'),url=p.get('u'),key=p.get('k'),demo=p.get('demo');
+ document.title='PRIME SCRIMS Elimination Overlay';
+ var tr='margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important';
+ document.documentElement.style.cssText=tr;document.body.style.cssText=tr;
+ document.body.innerHTML='<div id="elroot" style="position:fixed;left:0;top:0;right:0;bottom:0"></div>';
+ var m=mount(document.getElementById('elroot'));
+ if(demo){var names=['Alpha Esports','Bravo Squad','Charlie Kings','Delta Force','Echo Wolves'],n=0;var d=function(){n++;m.show(names[(n-1)%names.length],'MATCH 1 \u2022 '+n+(n===1?' TEAM OUT':' TEAMS OUT'));};d();setInterval(d,7000);return;}
+ if(!token||!url||!key){document.body.innerHTML='<div style="color:white;background:#111;padding:12px;font:16px Arial">Overlay URL is missing its token or Supabase settings. Copy the full URL from Point Table Maker.</div>';return;}
+ var prev=null,lastCur=null;
+ function feed(pl){
+  var list=Array.isArray(pl.eliminations)?pl.eliminations:[],cm=Number(pl.currentMatch);if(!isFinite(cm))cm=0;
+  var now={};list.forEach(function(e){now[e.id]=1;});
+  if(prev===null||cm!==lastCur){prev=now;lastCur=cm;return;}
+  var fresh=list.filter(function(e){return !prev[e.id]&&e.matchIndex===cm;});
+  var base=list.filter(function(e){return e.matchIndex===cm&&prev[e.id];}).length;
+  prev=now;
+  fresh.forEach(function(e,i){var c=base+i+1;m.show(e.team,'MATCH '+(cm+1)+' \u2022 '+c+(c===1?' TEAM OUT':' TEAMS OUT'));});
+ }
+ var prevW=null,lastW=null;
+ function feedW(pl){var wl=Array.isArray(pl.wwcds)?pl.wwcds:[],cm=Number(pl.currentMatch);if(!isFinite(cm))cm=0;var now={};wl.forEach(function(e){now[e.id]=1;});
+  if(prevW===null||cm!==lastW){prevW=now;lastW=cm;return;}
+  var fresh=wl.filter(function(e){return !prevW[e.id]&&e.matchIndex===cm;});prevW=now;
+  fresh.forEach(function(e){m.show(e.team,'MATCH '+(cm+1)+' \u2022 WINNER WINNER','wwcd');});}
+ function feedAll(pl){var c=Number(pl.currentMatch);if(!isFinite(c))c=0;m.ctx(c,(pl.maps||[])[c]||'',pl.tournament||'');feed(pl);feedW(pl);}
+ window.__elimFeed=feedAll;
+ async function poll(){if(!window.supabase)return;try{
+  if(!window.__ptmElimClient)window.__ptmElimClient=window.supabase.createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+  var res=await window.__ptmElimClient.rpc('get_ptm_live_overlay',{p_token:token});
+  var pl=window.__ptmUnwrap(res.data);if(res.error||!pl||!pl.data)return;feedAll(pl);
+ }catch(e){console.warn('Elimination overlay sync error',e);}}
+ poll();setInterval(poll,1000);
+})();
+</script>
+<script>
+/* Opened without ?mode= : show help instead of a blank page */
+(function(){var m=new URLSearchParams(location.search).get('mode');if(m==='overlay'||m==='elim')return;
+document.body.innerHTML='<div style="color:#fff;background:#111;padding:16px;font:16px Arial;max-width:560px">PRIME SCRIMS overlay page. Open the <b>Live</b> tab in Point Table Maker, press <b>Publish / Update live ranking</b>, then copy the generated overlay URL (it contains <code>?mode=overlay</code> or <code>?mode=elim</code>) into your Browser Source.</div>';})();
+</script>
+</body>
+</html>
