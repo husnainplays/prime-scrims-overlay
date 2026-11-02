@@ -1,19 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>Live Tournament Overlay</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
-<style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important}
-</style>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-</head>
-<body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Live Tournament Overlay</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important}</style><script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script></head><body>
 <script>
 (function(g){
 var COLS=['rank','flag','logo','team','el','mp','wwcd','pp','kp','tp'],LB={rank:'#',flag:'',logo:'',team:'TEAM',el:'ELIMS',mp:'MP',wwcd:'WWCD',pp:'PP',kp:'KP',tp:'PTS'};
@@ -99,23 +85,37 @@ g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
  document.body.innerHTML='<div id="board" style="position:absolute;left:0;top:0"></div><div id="pfi-offline" style="position:fixed;left:8px;top:8px;color:#fff;background:#222b;padding:5px 8px;font:12px Arial">Connecting to organizer…</div>';
  document.body.style.cssText='margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important';
  if(!token||!window.Peer){document.getElementById('pfi-offline').textContent='Invalid link or live connection library unavailable.';return;}
- var board=document.getElementById('board'),renderer=null,lastOpts='';
- var peer=new Peer(),conn=null;
+ var board=document.getElementById('board'),renderer=null,lastOpts='',peer=new Peer(),conn=null,retryTimer=null,connecting=false;
+ function status(t){var st=document.getElementById('pfi-offline');if(st)st.textContent=t;}
  function receive(msg){
   if(!msg||msg.type!=='pfi-live'||!msg.payload||!msg.payload.data)return;
   var payload=msg.payload,opts=payload.opts||{w:380,h:1080,fs:20,rs:6,ac:'#e10600',cols:['rank','team','mp','wwcd','pp','kp','tp']};
-  if(!renderer){renderer=window.PSOverlay.mount(board,opts);lastOpts=JSON.stringify(opts);}
-  else if(lastOpts!==JSON.stringify(opts)){renderer.setOpts(opts);lastOpts=JSON.stringify(opts);}
-  renderer.update(payload.data,payload.view);
-  var st=document.getElementById('pfi-offline');if(st)st.remove();
+  var css=document.getElementById('same-overlay-css');
+  if(!css){css=document.createElement('style');css.id='same-overlay-css';css.textContent='@import url(https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap);html,body{background:transparent!important}';document.head.appendChild(css);}
+  var sig=JSON.stringify(opts);
+  if(!renderer){renderer=window.PSOverlay.mount(board,opts);lastOpts=sig;}
+  else if(lastOpts!==sig){renderer.setOpts(opts);lastOpts=sig;}
+  renderer.update(payload.data,payload.view==null?'o':payload.view);
+  status('Connected');
  }
- peer.on('open',function(){
-  conn=peer.connect('pfi'+token,{reliable:true});
-  conn.on('open',function(){var st=document.getElementById('pfi-offline');if(st)st.textContent='Connected. Waiting for live data…';});
-  conn.on('data',receive);
-  conn.on('close',function(){var st=document.getElementById('pfi-offline');if(st)st.textContent='Organizer disconnected. Overlay link is offline.';});
- });
- peer.on('error',function(e){var st=document.getElementById('pfi-offline');if(st)st.textContent='Cannot connect: '+(e.type||e.message||'offline');});
+ function retry(){
+  if(retryTimer)return;
+  retryTimer=setTimeout(function(){retryTimer=null;connect();},2000);
+ }
+ function connect(){
+  if(connecting||peer.destroyed||conn&&conn.open)return;
+  connecting=true;status('Connecting to organizer…');
+  try{
+   conn=peer.connect('pfi'+token,{reliable:true});
+   conn.on('open',function(){connecting=false;status('Connected — waiting for live data…');});
+   conn.on('data',receive);
+   conn.on('close',function(){connecting=false;conn=null;status('Connection lost — reconnecting automatically…');retry();});
+   conn.on('error',function(){connecting=false;conn=null;status('Connection issue — reconnecting automatically…');retry();});
+  }catch(e){connecting=false;conn=null;retry();}
+ }
+ peer.on('open',connect);
+ peer.on('disconnected',function(){status('Reconnecting to live service…');try{peer.reconnect();}catch(e){}retry();});
+ peer.on('error',function(){status('Waiting for organizer… retrying');connecting=false;retry();});
 })();
 </script>
 <script>
@@ -163,7 +163,6 @@ g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
   var bx=root.querySelector('.pel-bx'),nm=root.querySelector('.pel-nm'),mt=root.querySelector('.pel-mt'),tg=root.querySelector('.pel-tg'),sk=root.querySelector('.pel-sk'),q=[],busy=false,idEl=root.querySelector('.pel-id'),bt=idEl.querySelector('.bt'),bm=idEl.querySelector('.bm'),idleT=null,ictx={on:false,cm:null,map:'',title:''};
 
   function idleHide(){clearTimeout(idleT);idEl.className='pel-id';}
-  /* Show tournament title only between event alerts. */
   function idleWake(){if(!ictx.on||busy)return;clearTimeout(idleT);fit();bt.textContent='TOURNAMENT';bm.textContent=ictx.title||'TOURNAMENT';idEl.className='pel-id pel-title-static';}
   function fit(){root.style.fontSize=(root.clientWidth/100)+'px';}
   function next(){
@@ -215,12 +214,22 @@ g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
  function feedAll(pl){var c=Number(pl.currentMatch);if(!isFinite(c))c=0;m.ctx(c,(pl.maps||[])[c]||'',pl.tournament||'');feed(pl);feedW(pl);}
  window.__elimFeed=feedAll;
 
- var peer=new Peer(),conn=null;
- peer.on('open',function(){
-  conn=peer.connect('pfi'+token,{reliable:true});
-  conn.on('data',function(msg){if(msg&&msg.type==='pfi-live'&&msg.payload)feedAll(msg.payload);});
- });
- peer.on('error',function(e){console.warn('Elimination overlay peer error',e);});
+ var peer=new Peer(),conn=null,connecting=false,retryTimer=null;
+ function retry(){if(retryTimer)return;retryTimer=setTimeout(function(){retryTimer=null;connect();},2000);}
+ function connect(){
+  if(connecting||peer.destroyed||conn&&conn.open)return;
+  connecting=true;
+  try{
+   conn=peer.connect('pfi'+token,{reliable:true});
+   conn.on('open',function(){connecting=false;});
+   conn.on('data',function(msg){if(msg&&msg.type==='pfi-live'&&msg.payload)feedAll(msg.payload);});
+   conn.on('close',function(){connecting=false;conn=null;retry();});
+   conn.on('error',function(){connecting=false;conn=null;retry();});
+  }catch(e){connecting=false;conn=null;retry();}
+ }
+ peer.on('open',connect);
+ peer.on('disconnected',function(){try{peer.reconnect();}catch(e){}retry();});
+ peer.on('error',function(){connecting=false;retry();});
 })();
 </script>
 </body>
