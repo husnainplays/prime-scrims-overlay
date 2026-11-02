@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Live Tournament Overlay</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important}</style><script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>POINT FIX IT Live Overlay</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important}</style><script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script></head><body>
 <script>
 (function(g){
 var COLS=['rank','flag','logo','team','el','mp','wwcd','pp','kp','tp'],LB={rank:'#',flag:'',logo:'',team:'TEAM',el:'ELIMS',mp:'MP',wwcd:'WWCD',pp:'PP',kp:'KP',tp:'PTS'};
@@ -38,8 +38,7 @@ function compute(d,view){
     else{var r=(M[+view]||{})[i]||{};m=1;w=parseInt(r.p,10)===1?1:0;k=parseFloat(r.k)||0;pp=pl(r.p);}
     return{id:i,n:String(n),mp:m,wwcd:w,pp:pp,kills:k,kp:k*kp,tp:pp+k*kp};});
   out.sort(function(a,b){return b.tp-a.tp||b.wwcd-a.wwcd||b.pp-a.pp||b.kills-a.kills||a.n.localeCompare(b.n);});
-  return out;}
-function mount(el,o){
+  return out;}function mount(el,o){
   if(!document.getElementById('pso-css')){var s=document.createElement('style');s.id='pso-css';s.textContent=CSS;document.head.appendChild(s);}
   var S={o:Object.assign({w:380,h:1080,fs:20,rs:6,ac:'#e10600',cols:COLS.slice(),n:25},o||{}),rows:{},prev:{},data:null,view:'o',first:true,moved:[]};
   el.classList.add('pso','n');
@@ -58,9 +57,14 @@ function mount(el,o){
     list.forEach(function(t,rank){seen[t.id]=1;var r=S.rows[t.id];
       if(!r){var e=document.createElement('div');e.className='r';r={el:e,cells:cells(e,false),v:{},tf:'',op:'',h:''};S.rows[t.id]=r;el.appendChild(e);}
       if(r.h!==rh){r.h=rh;r.el.style.height=rh+'px';}
-      put(r,'rank',rank+1);put(r,'team',t.n);put(r,'mp',t.mp);put(r,'wwcd',t.wwcd);put(r,'pp',t.pp);put(r,'kp',t.kp);put(r,'tp',t.tp);put(r,'el',t.kills);var fc=String((data.flags||[])[t.id]||''),lg=String((data.logos||[])[t.id]||'');img(r,'flag',/^[a-z]{2}(-[a-z]{2,3})?$/.test(fc)?'https://flagcdn.com/w80/'+fc+'.png':'');img(r,'logo',lg.indexOf('data:image/')===0?lg:'');
+      put(r,'rank',rank+1);put(r,'team',t.n);put(r,'mp',t.mp);put(r,'wwcd',t.wwcd);put(r,'pp',t.pp);put(r,'kp',t.kp);put(r,'tp',t.tp);put(r,'el',t.kills);
+      var fc=String((data.flags||[])[t.id]||''),lg=String((data.logos||[])[t.id]||'');
+      img(r,'flag',/^[a-z]{2}(-[a-z]{2,3})?$/.test(fc)?'https://flagcdn.com/w80/'+fc+'.png':'');
+      img(r,'logo',lg.indexOf('data:image/')===0?lg:'');
       if(r.cells.rank)r.cells.rank.className='c rank'+(rank<3?' m'+(rank+1):'');
-      var activeMatch=Number(data.currentMatch);if(!isFinite(activeMatch)||activeMatch<0)activeMatch=(data.matches||[]).length-1;var matchRows=(data.matches||[])[activeMatch]||{};var isOut=!!(matchRows[t.id]&&matchRows[t.id].eliminated);if(isOut)r.el.classList.add('eliminated');else r.el.classList.remove('eliminated');
+      var activeMatch=Number(data.currentMatch);if(!isFinite(activeMatch)||activeMatch<0)activeMatch=(data.matches||[]).length-1;
+      var matchRows=(data.matches||[])[activeMatch]||{};var isOut=!!(matchRows[t.id]&&matchRows[t.id].eliminated);
+      if(isOut)r.el.classList.add('eliminated');else r.el.classList.remove('eliminated');
       var tf='translateY('+(hh+rank*(rh+q.rs))+'px)';
       if(r.tf!==tf){r.tf=tf;r.el.style.transform=tf;}
       var op=rank<N?'1':'0';if(r.op!==op){r.op=op;r.el.style.opacity=op;}
@@ -77,175 +81,17 @@ g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
 })(window);
 </script>
 <script>
+/* Peer-to-peer live overlay viewer. No ranking database: browser connects directly to organizer. */
 (function(){
-var params=new URLSearchParams(location.search);
-if(params.get('mode')!=='overlay')return;
-var token=params.get('t')||'';
-var root=document.createElement('div');root.id='pfi-ranking-overlay';root.style.cssText='position:absolute;top:0;left:0;';document.body.appendChild(root);
-var overlay=null,peer=null,conn=null,retryTimer=null,closed=false,lastPayload=null;
-var defaults={w:380,h:1080,fs:20,rs:6,ac:'#e10600',dz:1,n:25};
-function status(t){/* Connection status intentionally hidden from livestream. */}
-function render(p){
- if(!p||!overlay)return;
- var d=p.data||p;
- if(!d||!Array.isArray(d.teams))return;
- lastPayload=p;
- var opts=Object.assign({},defaults,p.overlayOptions||p.options||{});
- overlay.setOpts(opts);
- overlay.update(d,p.view==null?'o':p.view);
-}
-function connect(){
- if(closed||!token||!window.Peer)return;
- try{
-  if(peer){try{peer.destroy();}catch(e){}peer=null;conn=null;}
-  peer=new Peer({debug:0});
-  peer.on('open',function(){
-   if(closed)return;
-   status('');
-   try{
-    conn=peer.connect('pfi'+token,{reliable:true});
-    conn.on('open',function(){status('');});
-    conn.on('data',function(msg){
-     if(msg&&msg.type==='pfi-live')render(msg.payload);
-     else if(msg&&msg.data)render(msg);
-    });
-    conn.on('close',function(){status('');scheduleRetry();});
-    conn.on('error',function(){status('');scheduleRetry();});
-   }catch(e){scheduleRetry();}
-  });
-  peer.on('error',function(){status('');scheduleRetry();});
-  peer.on('disconnected',function(){
-   status('');
-   try{if(peer&&!peer.destroyed)peer.reconnect();}catch(e){}
-   scheduleRetry();
-  });
-  peer.on('close',function(){status('');scheduleRetry();});
- }catch(e){scheduleRetry();}
-}
-function scheduleRetry(){
- if(closed||retryTimer)return;
- retryTimer=setTimeout(function(){retryTimer=null;connect();},2000);
-}
-function start(){
- if(!token)return;
- overlay=window.PSOverlay.mount(root,defaults);
- connect();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);
-else start();
-window.addEventListener('beforeunload',function(){
- closed=true;
- if(retryTimer)clearTimeout(retryTimer);
- try{if(conn)conn.close();if(peer)peer.destroy();}catch(e){}
-});
-})();
-</script>
-<script>
-(function(){
-var params=new URLSearchParams(location.search);
-if(params.get('mode')!=='elim')return;
-var token=params.get('t')||'';
-var box=document.createElement('div');
-box.id='pfi-event-overlay';
-box.style.cssText='position:absolute;inset:0;pointer-events:none;font-family:Arial,sans-serif;color:#fff;';
-document.body.appendChild(box);
-var peer=null,conn=null,retryTimer=null,closed=false,seenElims={},seenWwcd={},started=false;
-var style=document.createElement('style');
-style.textContent=
-'#pfi-event-overlay .event-title{position:absolute;top:5%;left:50%;transform:translateX(-50%);min-width:38%;max-width:85%;padding:12px 28px;text-align:center;font-size:30px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#fff;background:linear-gradient(90deg,rgba(15,15,18,.94),rgba(90,8,12,.94),rgba(15,15,18,.94));border-bottom:3px solid #e10600;text-shadow:0 2px 5px #000;box-shadow:0 5px 22px #0008;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
-+'#pfi-event-overlay .event-card{position:absolute;left:50%;top:35%;transform:translate(-50%,-50%);min-width:42%;max-width:75%;padding:18px 28px;text-align:center;background:linear-gradient(120deg,rgba(12,12,16,.96),rgba(70,5,10,.96));border:2px solid #d91620;box-shadow:0 0 24px #e1060066;border-radius:8px;animation:pfiEventIn .35s ease-out}'
-+'#pfi-event-overlay .event-kicker{font-size:18px;font-weight:900;letter-spacing:4px;color:#ff5a60}'
-+'#pfi-event-overlay .event-name{font-size:42px;font-weight:900;letter-spacing:1px;margin-top:7px;text-shadow:0 3px 8px #000;overflow-wrap:anywhere}'
-+'#pfi-event-overlay .event-sub{font-size:19px;font-weight:800;margin-top:8px;color:#ffd9d9}'
-+'#pfi-event-overlay .event-card.wwcd{border-color:#e7bd47;background:linear-gradient(120deg,rgba(25,19,5,.96),rgba(83,54,5,.96))}'
-+'#pfi-event-overlay .event-card.wwcd .event-kicker{color:#ffd95e}'
-+'@keyframes pfiEventIn{from{opacity:0;transform:translate(-50%,-42%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}';
-document.head.appendChild(style);
-function title(name){
- var t=document.getElementById('pfi-event-title');
- if(!t){t=document.createElement('div');t.id='pfi-event-title';t.className='event-title';box.appendChild(t);}
- t.textContent=name||'TOURNAMENT';
-}
-function show(kind,name,sub){
- var old=document.getElementById('pfi-event-card');if(old)old.remove();
- var c=document.createElement('div');c.id='pfi-event-card';c.className='event-card'+(kind==='wwcd'?' wwcd':'');
- var k=document.createElement('div');k.className='event-kicker';k.textContent=kind==='wwcd'?'WINNER WINNER CHICKEN DINNER':'TEAM ELIMINATED';
- var n=document.createElement('div');n.className='event-name';n.textContent=name||'TEAM';
- var s=document.createElement('div');s.className='event-sub';s.textContent=sub||'';
- c.appendChild(k);c.appendChild(n);if(sub){c.appendChild(s);}box.appendChild(c);
-}
-function getTeamName(p,id){
- var teams=p.teams||[];
- if(Array.isArray(teams))return String(teams[id]||('TEAM '+(Number(id)+1)));
- if(teams[id])return String(teams[id].name||teams[id].team||teams[id]);
- return 'TEAM '+(Number(id)+1);
-}
-function update(p){
- if(!p)return;
- var d=p.data||p;
- if(!d)return;
- var t=d.tournament||d.tournamentName||d.name||'TOURNAMENT';
- if(typeof t==='object')t=t.name||t.title||'TOURNAMENT';
- title(String(t));
- var match=Number(d.currentMatch);
- if(!isFinite(match))match=0;
- var maps=d.maps||[];
- var map=maps[match]||maps[match-1]||'';
- if(typeof map==='object')map=map.name||map.map||'';
- var elims=d.eliminations||[];
- if(!Array.isArray(elims))elims=[];
- var wwcds=d.wwcds||[];
- if(!Array.isArray(wwcds))wwcds=[];
- if(!started){elims.forEach(function(e){if(e&&e.id!=null)seenElims[String(e.id)]=1;});wwcds.forEach(function(w){if(w&&w.id!=null)seenWwcd[String(w.id)]=1;});started=true;return;}
- elims.forEach(function(e,i){
-  if(!e)return;
-  var id=String(e.id!=null?e.id:(match+'-'+i+'-'+(e.teamId!=null?e.teamId:e.team)));
-  if(seenElims[id])return;seenElims[id]=1;
-  var team=e.teamName||e.name||getTeamName(d,e.teamId!=null?e.teamId:e.team);
-  show('elim',String(team),'MATCH '+(match+1)+(map?' • '+map:''));
- });
- wwcds.forEach(function(w,i){
-  if(!w)return;
-  var id=String(w.id!=null?w.id:(match+'-'+i+'-'+(w.teamId!=null?w.teamId:w.team)));
-  if(seenWwcd[id])return;seenWwcd[id]=1;
-  var team=w.teamName||w.name||getTeamName(d,w.teamId!=null?w.teamId:w.team);
-  show('wwcd',String(team),'MATCH '+(match+1)+(map?' • '+map:''));
- });
-}
-function retry(){
- if(closed||retryTimer)return;
- retryTimer=setTimeout(function(){retryTimer=null;connect();},2000);
-}
-function connect(){
- if(closed||!token||!window.Peer)return;
- try{
-  if(peer){try{peer.destroy();}catch(e){}peer=null;conn=null;}
-  peer=new Peer({debug:0});
-  peer.on('open',function(){
-   if(closed)return;
-   try{
-    conn=peer.connect('pfi'+token,{reliable:true});
-    conn.on('data',function(msg){
-     if(msg&&msg.type==='pfi-live')update(msg.payload);
-     else if(msg&&msg.data)update(msg);
-    });
-    conn.on('close',retry);
-    conn.on('error',retry);
-   }catch(e){retry();}
-  });
-  peer.on('disconnected',function(){
-   try{if(peer&&!peer.destroyed)peer.reconnect();}catch(e){}
-   retry();
-  });
-  peer.on('error',retry);
-  peer.on('close',retry);
- }catch(e){retry();}
-}
-if(token){title('TOURNAMENT');connect();}
-window.addEventListener('beforeunload',function(){
- closed=true;if(retryTimer)clearTimeout(retryTimer);
- try{if(conn)conn.close();if(peer)peer.destroy();}catch(e){}
-});
-})();
-</script>
+ var p=new URLSearchParams(location.search);if(p.get('mode')!=='overlay')return;
+ var token=p.get('t');document.title='POINT FIX IT Live Overlay';
+ document.documentElement.style.cssText='margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important';
+ document.body.innerHTML='<div id="board" style="position:absolute;left:0;top:0"></div><div id="pfi-offline" style="display:none!important"></div>';
+ document.body.style.cssText='margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important';
+ if(!token||!window.Peer){document.getElementById('pfi-offline').textContent='Invalid link or live connection library unavailable.';return;}
+ var board=document.getElementById('board'),renderer=null,lastOpts='',peer=new Peer(),conn=null;
+ function receive(msg){if(!msg||msg.type!=='pfi-live'||!msg.payload||!msg.payload.data)return;var payload=msg.payload,opts=payload.opts||{w:380,h:1080,fs:20,rs:6,ac:'#e10600',cols:['rank','team','mp','wwcd','pp','kp','tp']};var css=document.getElementById('same-overlay-css');if(!css){css=document.createElement('style');css.id='same-overlay-css';css.textContent='@import url(https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap);html,body{background:transparent!important}';document.head.appendChild(css);}var sig=JSON.stringify(opts);if(!renderer){renderer=window.PSOverlay.mount(board,opts);lastOpts=sig;}else if(lastOpts!==sig){renderer.setOpts(opts);lastOpts=sig;}renderer.update(payload.data,payload.view==null?'o':payload.view);var st=document.getElementById('pfi-offline');if(st)st.remove();}
+ peer.on('open',function(){conn=peer.connect('pfi'+token,{reliable:true});conn.on('open',function(){var st=document.getElementById('pfi-offline');if(st)st.textContent='Waiting for organizer…';});conn.on('data',receive);conn.on('close',function(){var st=document.getElementById('pfi-offline');if(st)st.textContent='Organizer disconnected. Overlay link is offline.';});});
+ peer.on('error',function(e){var st=document.getElementById('pfi-offline');if(st)st.textContent='Cannot connect: '+(e.type||e.message||'offline');});
+})();</script>
 </body></html>
