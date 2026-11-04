@@ -1,5 +1,15 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>POINT FIX IT Live Overlay</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important}</style><script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script></head><body>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POINT FIX IT Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important}</style>
+</head>
+<body>
+<div id="pfi-offline" style="color:#fff;font:14px Arial;padding:8px">Open with ?mode=overlay&amp;t=TOKEN or ?mode=elim&amp;t=TOKEN</div>
 <script>
 (function(g){
 var COLS=['rank','flag','logo','team','el','mp','wwcd','pp','kp','tp'],LB={rank:'#',flag:'',logo:'',team:'TEAM',el:'ELIMS',mp:'MP',wwcd:'WWCD',pp:'PP',kp:'KP',tp:'PTS'};
@@ -73,50 +83,6 @@ function mount(el,o){
   rebuild();
   return{update:update,clear:clear,setOpts:setOpts,get moved(){return S.moved.slice();},get opts(){return S.o;}};}
 g.PSOverlay={mount:mount,compute:compute,COLS:COLS};
-})(window);
-</script>
-<script>
-/* PFILink: self-healing peer-to-peer viewer connection (shared by the live ranking overlay and the elimination overlay).
-   - loads PeerJS from a fallback CDN if the first one failed
-   - every attempt has a timeout; any error/close/destroy creates a brand-new Peer and retries with backoff, forever
-   - organizer heartbeat (pfi-ping) lets a silent/dead link be detected and rebuilt
-   - retries immediately when the network comes back or the source becomes visible again */
-(function(g){
-var SRCS=['https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
-function loadPeer(cb,n){n=n||0;if(g.Peer){cb();return;}var s=document.createElement('script');s.src=SRCS[n%SRCS.length];
-  s.onload=function(){if(g.Peer)cb();else setTimeout(function(){loadPeer(cb,n+1);},2000);};
-  s.onerror=function(){s.remove();setTimeout(function(){loadPeer(cb,n+1);},2000);};document.head.appendChild(s);}
-function PFILink(token,onData,onStatus){
-  var C=PFILink.cfg,peer=null,conn=null,tries=0,retryT=null,attemptT=null,seen=0,hb=false;
-  function st(m){if(onStatus){try{onStatus(m);}catch(e){}}}
-  function stop(){clearTimeout(attemptT);attemptT=null;var c=conn,p=peer;conn=null;peer=null;try{if(c)c.close();}catch(e){}try{if(p)p.destroy();}catch(e){}}
-  function retry(){if(retryT)return;var d=Math.min(C.retryBase*Math.pow(1.5,tries++),C.retryMax);st('Reconnecting…');retryT=setTimeout(function(){retryT=null;start();},d);}
-  function fail(me){if(me!==peer)return;stop();retry();}
-  function start(){
-    if(retryT){clearTimeout(retryT);retryT=null;}
-    stop();hb=false;seen=Date.now();
-    var me;try{me=new g.Peer();}catch(e){retry();return;}
-    peer=me;st('Connecting to organizer…');
-    attemptT=setTimeout(function(){fail(me);},C.attempt);
-    me.on('open',function(){
-      if(me!==peer)return;
-      var c=me.connect('pfi'+token,{reliable:true});conn=c;
-      c.on('open',function(){if(me===peer)st('Connected — waiting for live data…');});
-      c.on('data',function(m){if(me!==peer)return;seen=Date.now();clearTimeout(attemptT);attemptT=null;tries=0;
-        if(m&&m.type==='pfi-ping'){hb=true;return;}st('Live');onData(m);});
-      c.on('close',function(){fail(me);});c.on('error',function(){fail(me);});
-    });
-    me.on('disconnected',function(){if(me!==peer)return;try{me.reconnect();}catch(e){fail(me);}});
-    me.on('close',function(){fail(me);});me.on('error',function(){fail(me);});
-  }
-  setInterval(function(){if(peer&&hb&&Date.now()-seen>C.silence)fail(peer);},C.tick);
-  g.addEventListener('online',function(){if(!(conn&&conn.open)){tries=0;start();}});
-  document.addEventListener('visibilitychange',function(){if(!document.hidden&&!(conn&&conn.open)&&!retryT&&!attemptT){tries=0;start();}});
-  loadPeer(start);
-  return{restart:function(){tries=0;start();}};
-}
-PFILink.cfg={attempt:12000,silence:9000,tick:2000,retryBase:1000,retryMax:8000};
-g.PFILink=PFILink;
 })(window);
 </script>
 <script>
@@ -222,4 +188,5 @@ g.PFILink=PFILink;
  PFILink(token,function(msg){if(msg&&msg.type==='pfi-live'&&msg.payload)feedAll(msg.payload);});
 })();
 </script>
-</body></html>
+</body>
+</html>
